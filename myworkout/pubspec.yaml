@@ -1,5 +1,9 @@
-name: my_workout
+name: myworkout
 description: A new Flutter project.
+
+publish_to: 'none' # rimuovi se vuoi pubblicare su pub.dev
+
+version: 1.0.0+1
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -18,3 +22,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/logo.png

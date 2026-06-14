@@ -11,8 +11,8 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _fadeAnimation;
+  late Animation<double> _fade;
+  late Animation<double> _scale;
 
   @override
   void initState() {
@@ -23,11 +23,13 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(seconds: 2),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.7, end: 1.0)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _fade = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
+    _scale = Tween<double>(begin: 0.7, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
 
     _controller.forward();
   }
@@ -47,22 +49,22 @@ class _SplashScreenState extends State<SplashScreen>
           onTap: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
             );
           },
           child: AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
               return Opacity(
-                opacity: _fadeAnimation.value,
+                opacity: _fade.value,
                 child: Transform.scale(
-                  scale: _scaleAnimation.value,
+                  scale: _scale.value,
                   child: child,
                 ),
               );
             },
             child: Image.asset(
-              'assets/logo.png', // il tuo logo
+              'assets/logo.png',
               width: 180,
             ),
           ),
