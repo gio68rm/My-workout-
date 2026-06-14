@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
+import 'package:myworkout/services/supabase_service.dart';
+
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});

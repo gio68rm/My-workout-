@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
+import 'package:myworkout/services/supabase_service.dart';
 
 class WorkoutDetailPage extends StatefulWidget {
   final String workoutId;
@@ -11,112 +11,50 @@ class WorkoutDetailPage extends StatefulWidget {
 }
 
 class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
+  late final int workoutId;
   List<Map<String, dynamic>> exercises = [];
+  Map<int, List<Map<String, dynamic>>> setsByExercise = {};
   bool loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadExercises();
+    workoutId = int.parse(widget.workoutId);
+    _loadAll();
   }
 
-  Future<void> _loadExercises() async {
-    final data = await SupabaseService.getExercises(widget.workoutId);
+  Future<void> _loadAll() async {
+    loading = true;
+    setState(() {});
+
+    final ex = await SupabaseService.getExercises(workoutId);
+
+    // Carico tutti i set in un'unica query
+    final allSets = await SupabaseService.getAllSetsForWorkout(workoutId);
+
+    // Raggruppo i set per exercise_id
+    final grouped = <int, List<Map<String, dynamic>>>{};
+    for (var s in allSets) {
+      final id = s['exercise_id'] as int;
+      grouped.putIfAbsent(id, () => []);
+      grouped[id]!.add(s);
+    }
+
     setState(() {
-      exercises = data;
+      exercises = ex;
+      setsByExercise = grouped;
       loading = false;
     });
   }
 
-  Future<void> _addExercise() async {
-    final controller = TextEditingController();
-
-    await showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Nuovo esercizio"),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(labelText: "Nome esercizio"),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Annulla"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (controller.text.trim().isEmpty) return;
-
-              await SupabaseService.addExercise(
-                widget.workoutId,
-                controller.text.trim(),
-              );
-
-              Navigator.pop(context);
-              _loadExercises();
-            },
-            child: const Text("Aggiungi"),
-          ),
-        ],
-      ),
-    );
+  Future<void> _addExercise(String name) async {
+    await SupabaseService.addExercise(workoutId, name);
+    _loadAll();
   }
 
-  Future<void> _addSet(String exerciseId) async {
-    final repsController = TextEditingController();
-    final weightController = TextEditingController();
-    final rpeController = TextEditingController();
-
-    await showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Nuova serie"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: repsController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Ripetizioni"),
-            ),
-            TextField(
-              controller: weightController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Peso (kg)"),
-            ),
-            TextField(
-              controller: rpeController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "RPE"),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Annulla"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final reps = int.tryParse(repsController.text) ?? 0;
-              final weight = double.tryParse(weightController.text) ?? 0;
-              final rpe = double.tryParse(rpeController.text) ?? 0;
-
-              await SupabaseService.addSet(exerciseId, reps, weight, rpe);
-
-              Navigator.pop(context);
-              setState(() {}); // refresh
-            },
-            child: const Text("Aggiungi"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<List<Map<String, dynamic>>> _loadSets(String exerciseId) async {
-    return await SupabaseService.getSets(exerciseId);
+  Future<void> _addSet(int exerciseId, int reps, double weight, double rpe) async {
+    await SupabaseService.addSet(exerciseId, reps, weight, rpe);
+    _loadAll();
   }
 
   @override
@@ -128,54 +66,29 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Dettaglio Workout"),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addExercise,
-        child: const Icon(Icons.add),
-      ),
+      appBar: AppBar(title: const Text("Dettaglio Workout")),
       body: ListView.builder(
-        padding: const EdgeInsets.all(16),
         itemCount: exercises.length,
         itemBuilder: (context, index) {
           final ex = exercises[index];
+          final exId = ex['id'] as int;
+          final sets = setsByExercise[exId] ?? [];
 
-          return ExpansionTile(
+          return ListTile(
             title: Text(ex['name']),
-            children: [
-              FutureBuilder(
-                future: _loadSets(ex['id'].toString()),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-
-                  final sets = snapshot.data!;
-
-                  return Column(
-                    children: [
-                      for (final s in sets)
-                        ListTile(
-                          title: Text(
-                              "${s['reps']} reps × ${s['weight']} kg"),
-                          subtitle: Text("RPE: ${s['rpe']}"),
-                        ),
-                      TextButton.icon(
-                        onPressed: () => _addSet(ex['id'].toString()),
-                        icon: const Icon(Icons.add),
-                        label: const Text("Aggiungi serie"),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
+            subtitle: Text("Serie: ${sets.length}"),
+            trailing: IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () {
+                _addSet(exId, 10, 20.0, 7.0);
+              },
+            ),
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _addExercise("Nuovo esercizio"),
+        child: const Icon(Icons.add),
       ),
     );
   }

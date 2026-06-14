@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:health/health.dart';
-import '../services/supabase_service.dart';
+import 'package:myworkout/services/supabase_service.dart';
 
 class HealthSyncPage extends StatefulWidget {
   const HealthSyncPage({super.key});

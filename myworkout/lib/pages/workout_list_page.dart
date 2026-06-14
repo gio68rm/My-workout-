@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
+import 'package:myworkout/services/supabase_service.dart';
 
 class WorkoutListPage extends StatefulWidget {
   const WorkoutListPage({super.key});

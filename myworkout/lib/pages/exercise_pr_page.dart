@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
+import 'package:myworkout/services/supabase_service.dart';
+
 
 class ExercisePRPage extends StatefulWidget {
   final Map<String, dynamic> exercise;

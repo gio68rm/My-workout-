@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
+import 'package:myworkout/services/supabase_service.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -11,6 +11,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   Map<String, dynamic>? bodyMetrics;
   bool loading = true;
+  bool error = false;
 
   @override
   void initState() {
@@ -19,11 +20,20 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _loadMetrics() async {
-    final latest = await SupabaseService.getLatestBodyMetric();
-    setState(() {
-      bodyMetrics = latest;
-      loading = false;
-    });
+    try {
+      final latest = await SupabaseService.getLatestBodyMetric();
+
+      setState(() {
+        bodyMetrics = latest;
+        loading = false;
+        error = latest == null;
+      });
+    } catch (e) {
+      setState(() {
+        loading = false;
+        error = true;
+      });
+    }
   }
 
   @override
@@ -31,6 +41,17 @@ class _DashboardPageState extends State<DashboardPage> {
     if (loading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (error) {
+      return Scaffold(
+        body: Center(
+          child: Text(
+            "Nessun dato disponibile",
+            style: TextStyle(fontSize: 18, color: Colors.grey.shade400),
+          ),
+        ),
       );
     }
 

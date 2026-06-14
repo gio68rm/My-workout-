@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
+import 'package:myworkout/services/supabase_service.dart';
 
 class BodyMetricsPage extends StatefulWidget {
   const BodyMetricsPage({super.key});

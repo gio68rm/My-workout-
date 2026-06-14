@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
+import 'package:myworkout/services/supabase_service.dart';
 import 'workout_detail_page.dart';
 
 class WorkoutsPage extends StatefulWidget {
