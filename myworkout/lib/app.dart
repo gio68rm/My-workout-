@@ -4,7 +4,7 @@ import 'pages/health_sync_page.dart';
 import 'pages/body_metrics_page.dart';
 import 'pages/workouts_page.dart';
 import 'pages/workout_detail_page.dart';
-import 'pages/main_navigation.dart';
+import 'pages/splash_page.dart';
 
 class MyWorkoutApp extends StatelessWidget {
   const MyWorkoutApp({super.key});
@@ -19,7 +19,7 @@ class MyWorkoutApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const MainNavigation(),
+      home: const SplashPage(),
     );
   }
 }
