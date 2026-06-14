@@ -1,14 +1,10 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 
 class WorkoutDetailPage extends StatefulWidget {
-  final Map<String, dynamic> workout;
+  final String workoutId;
 
-  const WorkoutDetailPage({
-    super.key,
-    required this.workout,
-  });
+  const WorkoutDetailPage({super.key, required this.workoutId});
 
   @override
   State<WorkoutDetailPage> createState() => _WorkoutDetailPageState();
@@ -21,154 +17,165 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
   @override
   void initState() {
     super.initState();
-    loadExercises();
+    _loadExercises();
   }
 
-  Future<void> loadExercises() async {
-    setState(() => loading = true);
-
-    exercises = await SupabaseService.getExercises(
-      widget.workout['id'].toString(),
-    );
-
-    setState(() => loading = false);
+  Future<void> _loadExercises() async {
+    final data = await SupabaseService.getExercises(widget.workoutId);
+    setState(() {
+      exercises = data;
+      loading = false;
+    });
   }
 
-  // ⭐ Popup per aggiungere un nuovo esercizio
-  Future<void> addExerciseDialog() async {
-    final nameController = TextEditingController();
+  Future<void> _addExercise() async {
+    final controller = TextEditingController();
 
-    showDialog(
+    await showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Nuovo Esercizio"),
-          content: TextField(
-            controller: nameController,
-            decoration: const InputDecoration(
-              labelText: "Nome esercizio",
-              hintText: "Es. Panca Piana",
-            ),
+      builder: (_) => AlertDialog(
+        title: const Text("Nuovo esercizio"),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: "Nome esercizio"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Annulla"),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Annulla"),
+          ElevatedButton(
+            onPressed: () async {
+              if (controller.text.trim().isEmpty) return;
+
+              await SupabaseService.addExercise(
+                widget.workoutId,
+                controller.text.trim(),
+              );
+
+              Navigator.pop(context);
+              _loadExercises();
+            },
+            child: const Text("Aggiungi"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _addSet(String exerciseId) async {
+    final repsController = TextEditingController();
+    final weightController = TextEditingController();
+    final rpeController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Nuova serie"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: repsController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: "Ripetizioni"),
             ),
-            ElevatedButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                if (name.isEmpty) return;
-
-                await SupabaseService.addExercise(
-                  widget.workout['id'].toString(),
-                  name,
-                );
-
-                Navigator.pop(context);
-                loadExercises(); // 🔥 aggiorna la lista
-              },
-              child: const Text("Aggiungi"),
+            TextField(
+              controller: weightController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: "Peso (kg)"),
+            ),
+            TextField(
+              controller: rpeController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: "RPE"),
             ),
           ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Annulla"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final reps = int.tryParse(repsController.text) ?? 0;
+              final weight = double.tryParse(weightController.text) ?? 0;
+              final rpe = double.tryParse(rpeController.text) ?? 0;
+
+              await SupabaseService.addSet(exerciseId, reps, weight, rpe);
+
+              Navigator.pop(context);
+              setState(() {}); // refresh
+            },
+            child: const Text("Aggiungi"),
+          ),
+        ],
+      ),
     );
+  }
+
+  Future<List<Map<String, dynamic>>> _loadSets(String exerciseId) async {
+    return await SupabaseService.getSets(exerciseId);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
-      extendBodyBehindAppBar: true,
-
       appBar: AppBar(
-        title: Text(widget.workout['name']),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        title: const Text("Dettaglio Workout"),
       ),
-
       floatingActionButton: FloatingActionButton(
-        onPressed: addExerciseDialog,
-        backgroundColor: Colors.deepPurple,
+        onPressed: _addExercise,
         child: const Icon(Icons.add),
       ),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: exercises.length,
+        itemBuilder: (context, index) {
+          final ex = exercises[index];
 
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFF3E5F5), Color(0xFFFFFFFF)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
+          return ExpansionTile(
+            title: Text(ex['name']),
+            children: [
+              FutureBuilder(
+                future: _loadSets(ex['id'].toString()),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    );
+                  }
 
-        child: loading
-            ? const Center(child: CircularProgressIndicator())
-            : ListView.builder(
-                padding: const EdgeInsets.only(
-                    top: 100, bottom: 100, left: 16, right: 16),
-                itemCount: exercises.length,
-                itemBuilder: (context, index) {
-                  final ex = exercises[index];
+                  final sets = snapshot.data!;
 
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        "/exercise_detail",
-                        arguments: ex,
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(22),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                          child: Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.55),
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.3),
-                                width: 1.2,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: Colors.deepPurple.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: const Icon(
-                                    Icons.fitness_center,
-                                    color: Colors.deepPurple,
-                                    size: 28,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Text(
-                                    ex['name'],
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                  return Column(
+                    children: [
+                      for (final s in sets)
+                        ListTile(
+                          title: Text(
+                              "${s['reps']} reps × ${s['weight']} kg"),
+                          subtitle: Text("RPE: ${s['rpe']}"),
                         ),
+                      TextButton.icon(
+                        onPressed: () => _addSet(ex['id'].toString()),
+                        icon: const Icon(Icons.add),
+                        label: const Text("Aggiungi serie"),
                       ),
-                    ),
+                    ],
                   );
                 },
               ),
+            ],
+          );
+        },
       ),
     );
   }

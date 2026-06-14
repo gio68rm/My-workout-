@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../supabase_config.dart';
 
@@ -6,11 +5,21 @@ class SupabaseService {
   static final SupabaseClient _client = SupabaseConfig.client;
 
   // ------------------------------------------------------------
-  // 📌 METRICHE SALUTE
+  // 📌 BODY METRICS
   // ------------------------------------------------------------
 
-  // 🔹 Ultimo record body_metrics (peso, body fat, muscle mass)
-  static Future<Map<String, dynamic>?> getBodyMetrics() async {
+  // 🔹 Aggiunge un nuovo record di metriche corporee
+  static Future<void> addBodyMetric(Map<String, dynamic> data) async {
+    await _client.from('body_metrics').insert({
+      'weight': data['weight'],
+      'body_fat': data['body_fat'],
+      'muscle_mass': data['muscle_mass'],
+      'created_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  // 🔹 Ultimo record (per dashboard e profilo)
+  static Future<Map<String, dynamic>?> getLatestBodyMetric() async {
     final response = await _client
         .from('body_metrics')
         .select()
@@ -21,7 +30,41 @@ class SupabaseService {
     return response;
   }
 
-  // 🔹 Record precedente per calcolare i progressi
+  // 🔹 Storico completo (non usato ma utile)
+  static Future<List<Map<String, dynamic>>> getBodyMetrics() async {
+    final response = await _client
+        .from('body_metrics')
+        .select()
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  // 🔹 Storico peso (per advanced_stats_page)
+  static Future<List<double>> getWeightHistory() async {
+    final response = await _client
+        .from('body_metrics')
+        .select('weight')
+        .order('created_at', ascending: true);
+
+    return response
+        .map<double>((row) => (row['weight'] as num).toDouble())
+        .toList();
+  }
+
+  // 🔹 Storico body fat (per advanced_stats_page)
+  static Future<List<double>> getBodyFatHistory() async {
+    final response = await _client
+        .from('body_metrics')
+        .select('body_fat')
+        .order('created_at', ascending: true);
+
+    return response
+        .map<double>((row) => (row['body_fat'] as num).toDouble())
+        .toList();
+  }
+
+  // 🔹 Record precedente (per progressi giornalieri)
   static Future<Map<String, dynamic>> getDailyMetrics() async {
     final response = await _client
         .from('body_metrics')
@@ -47,26 +90,23 @@ class SupabaseService {
     };
   }
 
-  static Future<List<double>> getWeightHistory() async {
-    final response = await _client
-        .from('body_metrics')
-        .select('weight')
-        .order('created_at', ascending: true);
+  // ------------------------------------------------------------
+  // 📌 HEALTH METRICS (Health Sync)
+  // ------------------------------------------------------------
 
-    return response
-        .map<double>((row) => (row['weight'] as num).toDouble())
-        .toList();
-  }
-
-  static Future<List<double>> getBodyFatHistory() async {
-    final response = await _client
-        .from('body_metrics')
-        .select('body_fat')
-        .order('created_at', ascending: true);
-
-    return response
-        .map<double>((row) => (row['body_fat'] as num).toDouble())
-        .toList();
+  static Future<void> insertHealthMetrics({
+    required int steps,
+    required double activeEnergy,
+    required double distance,
+    required double heartRate,
+  }) async {
+    await _client.from('health_metrics').insert({
+      'steps': steps,
+      'active_energy': activeEnergy,
+      'distance': distance,
+      'heart_rate': heartRate,
+      'created_at': DateTime.now().toIso8601String(),
+    });
   }
 
   // ------------------------------------------------------------
