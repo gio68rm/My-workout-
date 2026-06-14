@@ -1,23 +1,12 @@
 import 'package:flutter/material.dart';
-import 'screens/splash_screen.dart';
-import 'pages/main_navigation.dart';
+import 'supabase_config.dart';
+import 'app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ⭐ INIZIALIZZAZIONE SUPABASE (OBBLIGATORIA PER WEB)
+  await SupabaseConfig.initialize();
+
   runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      routes: {
-        '/main': (context) => const MainNavigation(),
-      },
-      home: const SplashScreen(),
-    );
-  }
 }
