@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
-import 'screens/home_screen.dart';
+import 'pages/main_navigation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       routes: {
-        '/home': (context) => const HomeScreen(),
+        '/main': (context) => const MainNavigation(),
       },
       home: const SplashScreen(),
     );
