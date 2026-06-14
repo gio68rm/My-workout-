@@ -11,7 +11,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   Map<String, dynamic>? bodyMetrics;
-  Map<String, dynamic>? dailyMetrics;
+  Map<String, dynamic>? prevMetrics;
 
   bool loading = true;
 
@@ -24,8 +24,12 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> loadData() async {
     setState(() => loading = true);
 
-    bodyMetrics = await SupabaseService.getBodyMetrics();
-    dailyMetrics = await SupabaseService.getDailyMetrics();
+    final list = await SupabaseService.getBodyMetrics();
+
+    if (list.isNotEmpty) {
+      bodyMetrics = list.first;
+      prevMetrics = list.length > 1 ? list[1] : list.first;
+    }
 
     setState(() => loading = false);
   }
@@ -88,21 +92,21 @@ class _DashboardPageState extends State<DashboardPage> {
   // ⭐ Card progressi (peso + body fat + muscle mass)
   Widget progressCard() {
     final weight = (bodyMetrics?['weight'] ?? 0).toDouble();
-    final prevWeight = (dailyMetrics?['prev_weight'] ?? weight).toDouble();
+    final prevWeight = (prevMetrics?['weight'] ?? weight).toDouble();
 
     final bodyFat = (bodyMetrics?['body_fat'] ?? 0).toDouble();
-    final prevBodyFat = (dailyMetrics?['prev_body_fat'] ?? bodyFat).toDouble();
+    final prevBodyFat = (prevMetrics?['body_fat'] ?? bodyFat).toDouble();
 
     final muscle = (bodyMetrics?['muscle_mass'] ?? 0).toDouble();
-    final prevMuscle = (dailyMetrics?['prev_muscle_mass'] ?? muscle).toDouble();
+    final prevMuscle = (prevMetrics?['muscle_mass'] ?? muscle).toDouble();
 
     final weightDiff = weight - prevWeight;
     final fatDiff = bodyFat - prevBodyFat;
     final muscleDiff = muscle - prevMuscle;
 
     Color trendColor(double diff) {
-      if (diff < 0) return Colors.green; // miglioramento
-      if (diff > 0) return Colors.red;   // peggioramento
+      if (diff < 0) return Colors.green;
+      if (diff > 0) return Colors.red;
       return Colors.grey;
     }
 

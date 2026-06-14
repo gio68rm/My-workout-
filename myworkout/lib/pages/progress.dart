@@ -1,132 +1,154 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
+import '../services/supabase_service.dart';
 
-class ProgressPage extends StatelessWidget {
+class ProgressPage extends StatefulWidget {
   const ProgressPage({super.key});
 
+  @override
+  State<ProgressPage> createState() => _ProgressPageState();
+}
+
+class _ProgressPageState extends State<ProgressPage> {
+  List<Map<String, dynamic>> metrics = [];
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    loadMetrics();
+  }
+
+  Future<void> loadMetrics() async {
+    setState(() => loading = true);
+
+    final data = await SupabaseService.getBodyMetrics();
+    metrics = data;
+
+    setState(() => loading = false);
+  }
+
+  // ---------------------------
+  // GLASS CARD
+  // ---------------------------
+  Widget glassCard({required Widget child}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(22),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.55),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.3),
+              width: 1.2,
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------
+  // ADD WEIGHT MODAL
+  // ---------------------------
+  void openAddWeightModal() {
+    final weightController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Aggiungi Peso"),
+          content: TextField(
+            controller: weightController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: "Peso (kg)"),
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Annulla"),
+              onPressed: () => Navigator.pop(context),
+            ),
+            ElevatedButton(
+              child: const Text("Salva"),
+              onPressed: () async {
+                final weight = double.tryParse(weightController.text) ?? 0;
+
+                if (weight > 0) {
+                  await SupabaseService.addBodyMetric(weight);
+                  Navigator.pop(context);
+                  loadMetrics();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ---------------------------
+  // BUILD
+  // ---------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Progress'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          const Text(
-            'Weight Trend (Last 7 Days)',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.orangeAccent,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 200,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(show: false),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: const [
-                      FlSpot(0, 72.4),
-                      FlSpot(1, 72.2),
-                      FlSpot(2, 72.0),
-                      FlSpot(3, 71.8),
-                      FlSpot(4, 71.6),
-                      FlSpot(5, 71.5),
-                      FlSpot(6, 71.4),
-                    ],
-                    isCurved: true,
-                    color: Colors.orangeAccent,
-                    barWidth: 3,
-                    dotData: FlDotData(show: false),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          const Text(
-            'Body Fat Trend (Last 7 Days)',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.greenAccent,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 200,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(show: false),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: const [
-                      FlSpot(0, 18.2),
-                      FlSpot(1, 18.1),
-                      FlSpot(2, 18.0),
-                      FlSpot(3, 17.9),
-                      FlSpot(4, 17.8),
-                      FlSpot(5, 17.7),
-                      FlSpot(6, 17.6),
-                    ],
-                    isCurved: true,
-                    color: Colors.greenAccent,
-                    barWidth: 3,
-                    dotData: FlDotData(show: false),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          const Text(
-            'Workout Frequency (Sessions per Week)',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.blueAccent,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 200,
-            child: BarChart(
-              BarChartData(
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(show: false),
-                borderData: FlBorderData(show: false),
-                barGroups: [
-                  BarChartGroupData(x: 0, barRods: [
-                    BarChartRodData(toY: 3, color: Colors.blueAccent),
-                  ]),
-                  BarChartGroupData(x: 1, barRods: [
-                    BarChartRodData(toY: 4, color: Colors.blueAccent),
-                  ]),
-                  BarChartGroupData(x: 2, barRods: [
-                    BarChartRodData(toY: 5, color: Colors.blueAccent),
-                  ]),
-                  BarChartGroupData(x: 3, barRods: [
-                    BarChartRodData(toY: 4, color: Colors.blueAccent),
-                  ]),
-                  BarChartGroupData(x: 4, barRods: [
-                    BarChartRodData(toY: 6, color: Colors.blueAccent),
-                  ]),
-                ],
-              ),
-            ),
+        title: const Text("Progressi"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: openAddWeightModal,
           ),
         ],
       ),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : metrics.isEmpty
+              ? const Center(
+                  child: Text(
+                    "Nessun dato registrato",
+                    style: TextStyle(fontSize: 18),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: metrics.length,
+                  itemBuilder: (context, index) {
+                    final m = metrics[index];
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: glassCard(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "${m['weight']} kg",
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              m['created_at']
+                                  .toString()
+                                  .substring(0, 10), // yyyy-mm-dd
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }

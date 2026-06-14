@@ -20,13 +20,12 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> loadProfile() async {
-    loading = true;
-    setState(() {});
+    setState(() => loading = true);
 
-    bodyMetrics = await SupabaseService.getBodyMetrics();
+    final list = await SupabaseService.getBodyMetrics();
+    bodyMetrics = list.isNotEmpty ? list.first : null;
 
-    loading = false;
-    setState(() {});
+    setState(() => loading = false);
   }
 
   Widget glassCard({required Widget child}) {
@@ -149,6 +148,21 @@ class _ProfilePageState extends State<ProfilePage> {
                                 style: TextStyle(fontSize: 16)),
                             Text(
                               "${bodyMetrics?['body_fat'] ?? '--'}%",
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("Muscle Mass",
+                                style: TextStyle(fontSize: 16)),
+                            Text(
+                              "${bodyMetrics?['muscle_mass'] ?? '--'} kg",
                               style: const TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.bold),
                             ),

@@ -56,6 +56,15 @@ class _BodyMetricsPageState extends State<BodyMetricsPage> {
     setState(() => loading = false);
   }
 
+  String _formatDate(String iso) {
+    try {
+      final date = DateTime.parse(iso);
+      return "${date.day}/${date.month}/${date.year}  ${date.hour}:${date.minute.toString().padLeft(2, '0')}";
+    } catch (_) {
+      return iso;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,12 +112,13 @@ class _BodyMetricsPageState extends State<BodyMetricsPage> {
                 itemBuilder: (context, i) {
                   final item = history[i];
                   return Card(
+                    elevation: 2,
                     child: ListTile(
                       title: Text("Peso: ${item['weight']} kg"),
                       subtitle: Text(
                         "Body Fat: ${item['body_fat']}%\n"
                         "Muscolo: ${item['muscle_mass']} kg\n"
-                        "Data: ${item['created_at']}",
+                        "Data: ${_formatDate(item['created_at'])}",
                       ),
                     ),
                   );

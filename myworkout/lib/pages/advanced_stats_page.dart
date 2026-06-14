@@ -10,10 +10,8 @@ class AdvancedStatsPage extends StatefulWidget {
 }
 
 class _AdvancedStatsPageState extends State<AdvancedStatsPage> {
-  double maxWeight = 0;
-  double avgBodyFat = 0;
-  double totalVolume = 0;
-
+  List<Map<String, dynamic>> weightHistory = [];
+  List<Map<String, dynamic>> prs = [];
   bool loading = true;
 
   @override
@@ -25,26 +23,13 @@ class _AdvancedStatsPageState extends State<AdvancedStatsPage> {
   Future<void> loadStats() async {
     setState(() => loading = true);
 
-    // ⭐ PR globale
-    maxWeight = await SupabaseService.getGlobalMaxWeight();
-
-    // ⭐ Body fat medio
-    final bodyFatHistory = await SupabaseService.getBodyFatHistory();
-    if (bodyFatHistory.isNotEmpty) {
-      avgBodyFat =
-          bodyFatHistory.reduce((a, b) => a + b) / bodyFatHistory.length;
-    }
-
-    // ⭐ Volume totale storico (per ora non abbiamo storico → lista vuota)
-    final volumeHistory = <double>[]; // 🔥 FIX QUI
-    if (volumeHistory.isNotEmpty) {
-      totalVolume = volumeHistory.reduce((a, b) => a + b);
-    }
+    weightHistory = await SupabaseService.getBodyMetrics();
+    prs = await SupabaseService.getPersonalRecords();
 
     setState(() => loading = false);
   }
 
-  Widget statCard(String title, String value, IconData icon, Color color) {
+  Widget glassCard({required Widget child}) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(22),
       child: BackdropFilter(
@@ -59,40 +44,7 @@ class _AdvancedStatsPageState extends State<AdvancedStatsPage> {
               width: 1.2,
             ),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 55,
-                height: 55,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Icon(icon, color: color, size: 30),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black.withOpacity(0.6),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          child: child,
         ),
       ),
     );
@@ -101,54 +53,105 @@ class _AdvancedStatsPageState extends State<AdvancedStatsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-
       appBar: AppBar(
         title: const Text("Statistiche Avanzate"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
-
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFE8F5E9), Color(0xFFFFFFFF)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-
-        child: loading
-            ? const Center(child: CircularProgressIndicator())
-            : ListView(
-                padding: const EdgeInsets.only(
-                    top: 100, bottom: 100, left: 16, right: 16),
-                children: [
-                  statCard(
-                    "PR Globale",
-                    "${maxWeight.toStringAsFixed(1)} kg",
-                    Icons.fitness_center,
-                    Colors.deepPurple,
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                // ---------------------------
+                // PESO CORPOREO
+                // ---------------------------
+                glassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Peso Corporeo",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (weightHistory.isEmpty)
+                        const Text("Nessun dato disponibile"),
+                      if (weightHistory.isNotEmpty)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Ultimo peso: ${weightHistory.first['weight']} kg",
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (weightHistory.length > 1)
+                              Text(
+                                "Precedente: ${weightHistory[1]['weight']} kg",
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                          ],
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 20),
+                ),
 
-                  statCard(
-                    "Body Fat Medio",
-                    "${avgBodyFat.toStringAsFixed(1)}%",
-                    Icons.percent,
-                    Colors.pink,
-                  ),
-                  const SizedBox(height: 20),
+                const SizedBox(height: 25),
 
-                  statCard(
-                    "Volume Totale Storico",
-                    "${totalVolume.toStringAsFixed(1)} kg",
-                    Icons.auto_graph,
-                    Colors.blue,
+                // ---------------------------
+                // PERSONAL RECORDS
+                // ---------------------------
+                glassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Personal Records",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (prs.isEmpty)
+                        const Text("Nessun PR registrato"),
+                      if (prs.isNotEmpty)
+                        Column(
+                          children: prs.map((pr) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    pr['exercise_name'],
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    "${pr['weight']} kg",
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                    ],
                   ),
-                ],
-              ),
-      ),
+                ),
+              ],
+            ),
     );
   }
 }

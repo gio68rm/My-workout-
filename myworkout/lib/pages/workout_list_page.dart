@@ -20,13 +20,11 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   }
 
   Future<void> loadWorkouts() async {
-    loading = true;
-    setState(() {});
+    setState(() => loading = true);
 
     workouts = await SupabaseService.getWorkouts();
 
-    loading = false;
-    setState(() {});
+    setState(() => loading = false);
   }
 
   // ⭐ Animazione Apple Fitness
@@ -46,6 +44,9 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
 
   // ⭐ Card stile Apple Fitness
   Widget workoutCard(Map<String, dynamic> w, int index) {
+    final date = (w['created_at'] ?? w['date'] ?? '').toString();
+    final shortDate = date.isNotEmpty ? date.substring(0, 10) : "--";
+
     return animated(
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -93,7 +94,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          w['date'].toString().substring(0, 10),
+                          shortDate,
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.black.withOpacity(0.6),
@@ -159,7 +160,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
               if (name.isNotEmpty) {
                 await SupabaseService.createWorkout(name, notes);
                 Navigator.pop(context);
-                await loadWorkouts(); // 🔄 aggiorna lista
+                await loadWorkouts();
               }
             },
             child: const Text("Salva"),
@@ -197,24 +198,32 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
 
         child: loading
             ? const Center(child: CircularProgressIndicator())
-            : workouts.isEmpty
-                ? const Center(
-                    child: Text(
-                      "Nessun workout ancora registrato",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
+            : RefreshIndicator(
+                onRefresh: loadWorkouts,
+                child: workouts.isEmpty
+                    ? ListView(
+                        padding: const EdgeInsets.only(top: 120),
+                        children: const [
+                          Center(
+                            child: Text(
+                              "Nessun workout ancora registrato",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.only(top: 100, bottom: 100),
+                        children: [
+                          ...workouts.asMap().entries.map(
+                            (e) => workoutCard(e.value, e.key),
+                          ),
+                        ],
                       ),
-                    ),
-                  )
-                : ListView(
-                    padding: const EdgeInsets.only(top: 100, bottom: 100),
-                    children: [
-                      ...workouts.asMap().entries.map(
-                        (e) => workoutCard(e.value, e.key),
-                      ),
-                    ],
-                  ),
+              ),
       ),
     );
   }

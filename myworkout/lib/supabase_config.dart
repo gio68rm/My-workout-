@@ -1,16 +1,103 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class SupabaseConfig {
-  static const String supabaseUrl = 'https://vtfhecngpgvfaegfycnb.supabase.co';
-  static const String supabaseAnonKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0ZmhlY25ncGd2ZmFlZ2Z5Y25iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNzkyMTEsImV4cCI6MjA5Njg1NTIxMX0.K36HstAy5qGS9AgFQUJpfj5KZJ4WHLSXfyfPC38Iht0';
+class SupabaseService {
+  static final supabase = Supabase.instance.client;
 
-  static Future<void> initialize() async {
-    await Supabase.initialize(
-      url: supabaseUrl,
-      anonKey: supabaseAnonKey,
-    );
+  // ---------------------------
+  // WORKOUTS
+  // ---------------------------
+  static Future<List<Map<String, dynamic>>> getWorkouts() async {
+    return await supabase
+        .from('workouts')
+        .select()
+        .order('date', ascending: false);
   }
 
-  static SupabaseClient get client => Supabase.instance.client;
+  static Future<List<Map<String, dynamic>>> getExercises(int workoutId) async {
+    return await supabase
+        .from('exercises')
+        .select()
+        .eq('workout_id', workoutId)
+        .order('id');
+  }
+
+  static Future<List<Map<String, dynamic>>> getExerciseSets(int exerciseId) async {
+    return await supabase
+        .from('exercise_sets')
+        .select()
+        .eq('exercise_id', exerciseId)
+        .order('id');
+  }
+
+  // ---------------------------
+  // ADD SET + PR AUTOMATICO
+  // ---------------------------
+  static Future<void> addSet(
+      int exerciseId, int reps, double weight, String exerciseName) async {
+    // 1. Salva il set
+    await supabase.from('exercise_sets').insert({
+      'exercise_id': exerciseId,
+      'reps': reps,
+      'weight': weight,
+    });
+
+    // 2. Aggiorna PR se necessario
+    await updatePRIfNeeded(exerciseName, weight);
+  }
+
+  // ---------------------------
+  // BODY METRICS
+  // ---------------------------
+  static Future<List<Map<String, dynamic>>> getBodyMetrics() async {
+    return await supabase
+        .from('body_metrics')
+        .select()
+        .order('created_at', ascending: false);
+  }
+
+  static Future<void> addBodyMetric(double weight) async {
+    await supabase.from('body_metrics').insert({
+      'weight': weight,
+    });
+  }
+
+  // ---------------------------
+  // PERSONAL RECORDS
+  // ---------------------------
+  static Future<List<Map<String, dynamic>>> getPersonalRecords() async {
+    return await supabase
+        .from('personal_records')
+        .select()
+        .order('weight', ascending: false);
+  }
+
+  static Future<void> updatePRIfNeeded(
+      String exerciseName, double weight) async {
+    // 1. Recupera PR esistente
+    final existing = await supabase
+        .from('personal_records')
+        .select()
+        .eq('exercise_name', exerciseName)
+        .order('weight', ascending: false)
+        .limit(1);
+
+    // 2. Se non esiste → crealo
+    if (existing.isEmpty) {
+      await supabase.from('personal_records').insert({
+        'exercise_name': exerciseName,
+        'weight': weight,
+      });
+      return;
+    }
+
+    final currentPR = existing.first['weight']?.toDouble() ?? 0;
+
+    // 3. Se il nuovo peso è maggiore → aggiorna
+    if (weight > currentPR) {
+      await supabase
+          .from('personal_records')
+          .update({'weight': weight})
+          .eq('exercise_name', exerciseName);
+    }
+  }
 }

@@ -58,7 +58,7 @@ class _HealthSyncPageState extends State<HealthSyncPage> {
       final data = await _health.getHealthDataFromTypes(yesterday, now, types);
 
       double steps = 0;
-      double calories = 0;
+      double activeEnergy = 0;
       double distance = 0;
       double heartRate = 0;
 
@@ -68,10 +68,10 @@ class _HealthSyncPageState extends State<HealthSyncPage> {
             steps += (d.value as num).toDouble();
             break;
           case HealthDataType.ACTIVE_ENERGY_BURNED:
-            calories += (d.value as num).toDouble();
+            activeEnergy += (d.value as num).toDouble();
             break;
           case HealthDataType.DISTANCE_WALKING_RUNNING:
-            distance += (d.value as num).toDouble();
+            distance += (d.value as num).toDouble(); // metri
             break;
           case HealthDataType.HEART_RATE:
             heartRate = (d.value as num).toDouble();
@@ -82,10 +82,10 @@ class _HealthSyncPageState extends State<HealthSyncPage> {
       }
 
       await SupabaseService.insertHealthMetrics(
-        steps: steps,
-        calories: calories,
-        distance: distance,
-        heartRate: heartRate,
+        steps: steps.toInt(),
+        activeEnergy: activeEnergy,
+        distance: distance, // metri
+        heartRate: heartRate.toInt(),
       );
 
       await _loadHistory();
@@ -128,8 +128,8 @@ class _HealthSyncPageState extends State<HealthSyncPage> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Text("Passi: ${latest['steps']}"),
-              Text("Calorie: ${latest['calories']} kcal"),
-              Text("Distanza: ${(latest['distance_m'] / 1000).toStringAsFixed(2)} km"),
+              Text("Calorie attive: ${latest['active_energy'].toStringAsFixed(0)} kcal"),
+              Text("Distanza: ${(latest['distance'] / 1000).toStringAsFixed(2)} km"),
               Text("Battito: ${latest['heart_rate']} bpm"),
             ],
 
@@ -147,8 +147,8 @@ class _HealthSyncPageState extends State<HealthSyncPage> {
                     child: ListTile(
                       title: Text("Passi: ${item['steps']}"),
                       subtitle: Text(
-                        "Calorie: ${item['calories']} kcal\n"
-                        "Distanza: ${(item['distance_m'] / 1000).toStringAsFixed(2)} km\n"
+                        "Calorie attive: ${item['active_energy'].toStringAsFixed(0)} kcal\n"
+                        "Distanza: ${(item['distance'] / 1000).toStringAsFixed(2)} km\n"
                         "Battito: ${item['heart_rate']} bpm\n"
                         "Data: ${item['created_at']}",
                       ),

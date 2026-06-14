@@ -22,10 +22,15 @@ class _BottomNavState extends State<BottomNav> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true, // evita glitch con sfondi e blur
       body: pages[index],
+
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (i) => setState(() => index = i),
+
+        indicatorColor: Colors.deepPurple.withOpacity(0.20),
+
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),

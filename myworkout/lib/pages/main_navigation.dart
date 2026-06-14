@@ -24,12 +24,16 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true, // ⭐ evita glitch con blur e gradienti
       body: pages[index],
 
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (i) => setState(() => index = i),
         height: 70,
+
+        indicatorColor: Colors.deepPurple.withOpacity(0.20), // ⭐ più elegante
+
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
